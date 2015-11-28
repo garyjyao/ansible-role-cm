@@ -4,11 +4,12 @@ python: "2.7"
 
 env:
   - TEST=test-ansible-role-rm.yml
+
 before_install:
   # Make sure everything's up to date.
   - sudo apt-get update -qq
 
-install:
+#install:
   # Install Ansible.
   - pip install ansible
 
@@ -22,7 +23,7 @@ script:
   - ansible-playbook -i tests/localhost tests/$TEST --connection=local --sudo -vvvv
 
   - >
-    ansible-playbook -i tests/inventory tests/$TEST --connection=local --sudo -vvvv
+    ansible-playbook -i tests/localhost tests/$TEST --connection=local --sudo -vvvv
     | grep -q 'changed=0.*failed=0'
     && (echo 'Idempotence test: pass' && exit 0)
     || (echo 'Idempotence test: fail' && exit 1)
