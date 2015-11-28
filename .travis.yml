@@ -11,8 +11,7 @@ install:
   - pip install ansible
 
   # Add ansible.cfg to pick up roles path.
-  - "printf [defaults] > ansible.cfg"
-  - "printf roles_path=../ >> ansible.cfg"
+  - "{ echo '[defaults]'; echo 'roles_path = ../'; } >> ansible.cfg"
 
 script:
   # We'll add some commands to test the role here.
