@@ -1,0 +1,71 @@
+---
+# tasks file for ansible-role-cm
+- name: Determine if ansible is already installed
+  command: which ansible
+  register: ansible_installed
+  changed_when: false
+  ignore_errors: yes
+
+- name: set fact ansible_installed
+  set_fact: ansible_installed={{ ansible_installed.rc == 0 }}
+  when: ansible_installed is defined
+
+- name: Determine what ansible vesion is installed if ansible is installed
+  shell: ansible --version | head -n 1 | awk '{ print $2 }'
+  when: ansible_installed
+  register: ansible_version_installed
+  changed_when: false
+  ignore_errors: yes
+
+- name: show message and requried ansible version is already installed
+  debug: msg="Ansible {{ ansible_version_wanted }} is already installed on {{ inventory_hostname }}."
+  when: ansible_installed and ansible_version_installed.stdout == ansible_version_wanted
+  changed_when: false
+
+- name: ensure install temporary folder exists
+  file: path={{ install_temp_folder }} state=directory
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: debug
+  debug: msg="ansible_distribution={{ ansible_distribution }}."
+
+#Install 2 required packages for ansible
+- name: Install python-devel on el
+  yum: name=python-devel state=present
+  when: (not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted) and (ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux')
+
+- name: Install python-dev on deb
+  apt: name=python-dev state=present
+  when: (not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted) and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
+
+- name: Install python-pip on el
+  yum: name=python-pip state=present
+  when: (not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted) and (ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux')
+
+- name: Install python-pip on deb
+  apt: name=python-pip state=present
+  when: (not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted) and ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Install python-setuptools
+  pip: name=setuptools state=present
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: Download Ansible source tarball
+  get_url: url=http://releases.ansible.com/ansible/ansible-{{ ansible_version_wanted }}.tar.gz dest={{ install_temp_folder }}/ansible-{{ ansible_version_wanted }}.tar.gz
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: Unpack Ansible source tarball
+  unarchive: src={{ install_temp_folder }}/ansible-{{ ansible_version_wanted }}.tar.gz dest={{ install_temp_folder }} copy=no
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: Install Ansible from source tarball
+  shell: cd {{ install_temp_folder }}/ansible-{{ ansible_version_wanted }} && python setup.py install
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: Clean up if required
+  shell: rm -rf -- {{ install_temp_folder }}/ansible-{{ ansible_version_wanted }}
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted
+
+- name: show message about the installation complete
+  debug: msg="Ansible {{ ansible_version_wanted }} has been installed/upgraded successfully on {{ inventory_hostname }}."
+  when: not ansible_installed or ansible_version_installed.stdout != ansible_version_wanted

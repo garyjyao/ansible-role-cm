@@ -1,0 +1,4 @@
+---
+# defaults file for ansible-role-cm
+ansible_version_wanted: '1.9.4'
+install_temp_folder: '/var/tmp'
